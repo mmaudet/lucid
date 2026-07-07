@@ -74,11 +74,12 @@ pub async fn correct(
     };
 
     // Post-traitement déterministe : force les graphies canoniques du dictionnaire
-    // (hors LLM), ce qu'un petit modèle applique de façon inconstante. Pas sur fail-safe.
-    if outcome.status != Status::FailSafe {
-        let dicted = apply_dictionary(&outcome.text, dict);
-        if dicted != outcome.text {
-            outcome.text = dicted;
+    // (hors LLM). Appliqué MÊME en fail-safe : le stop "\n" peut vider une sortie et
+    // déclencher le fail-safe ; on veut que les noms connus soient corrigés quoi qu'il arrive.
+    let dicted = apply_dictionary(&outcome.text, dict);
+    if dicted != outcome.text {
+        outcome.text = dicted;
+        if outcome.status == Status::Unchanged {
             outcome.status = Status::Corrected;
         }
     }
