@@ -9,14 +9,24 @@ use crate::openai::{ChatMessage, ChatRequest};
 
 pub use guardrails::{Outcome, Status};
 
-/// Dernier message `user` = texte à corriger.
+/// Dernier message `user` = texte à corriger (balises d'enrobage retirées).
 pub fn extract_input(messages: &[ChatMessage]) -> String {
-    messages
+    let raw = messages
         .iter()
         .rev()
         .find(|m| m.role == "user")
         .map(|m| m.content.clone())
-        .unwrap_or_default()
+        .unwrap_or_default();
+    strip_wrappers(&raw)
+}
+
+/// Retire les balises d'enrobage ajoutées par certains clients (ex. VoiceInk enveloppe
+/// la transcription dans <TRANSCRIPT>…</TRANSCRIPT>), qui perturbent un petit modèle.
+fn strip_wrappers(s: &str) -> String {
+    s.replace("<TRANSCRIPT>", "")
+        .replace("</TRANSCRIPT>", "")
+        .trim()
+        .to_string()
 }
 
 /// Premier message `system` entrant (pour prompt_mode=prepend).
@@ -61,5 +71,29 @@ pub async fn correct(
             text: input.trim().to_string(),
             status: Status::FailSafe,
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::openai::ChatMessage;
+
+    #[test]
+    fn extract_input_retire_les_balises_transcript() {
+        let msgs = vec![ChatMessage {
+            role: "user".into(),
+            content: "\n<TRANSCRIPT>\nJe m'appelle Michel.\n</TRANSCRIPT>".into(),
+        }];
+        assert_eq!(extract_input(&msgs), "Je m'appelle Michel.");
+    }
+
+    #[test]
+    fn extract_input_texte_normal_inchange() {
+        let msgs = vec![ChatMessage {
+            role: "user".into(),
+            content: "bonjour".into(),
+        }];
+        assert_eq!(extract_input(&msgs), "bonjour");
     }
 }
