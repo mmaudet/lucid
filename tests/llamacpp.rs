@@ -1,4 +1,4 @@
-use lucid::backends::{Backend, BackendRequest};
+use lucid::backends::BackendRequest;
 use lucid::config::Config;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};

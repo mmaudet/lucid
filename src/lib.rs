@@ -5,6 +5,7 @@ pub mod config;
 pub mod correction;
 pub mod dictionary;
 pub mod openai;
+pub mod server;
 
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
