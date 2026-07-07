@@ -1,13 +1,16 @@
 //! Handlers HTTP.
 
 use axum::extract::State;
+use axum::http::HeaderMap;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::json;
+use std::time::Instant;
 
 use super::AppState;
 use crate::correction;
 use crate::openai::{ChatMessage, ChatRequest, ChatResponse, Choice, Usage, new_id, unix_now};
+use crate::store::LogEntry;
 
 pub async fn health(State(state): State<AppState>) -> Json<serde_json::Value> {
     let h = state.backend.health().await;
@@ -29,8 +32,13 @@ pub async fn models() -> Json<serde_json::Value> {
     }))
 }
 
-pub async fn chat_completions(State(state): State<AppState>, Json(req): Json<ChatRequest>) -> Response {
+pub async fn chat_completions(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    Json(req): Json<ChatRequest>,
+) -> Response {
     let dict = state.dictionary.snapshot();
+    let started = Instant::now();
     let outcome = correction::correct(
         &*state.backend,
         &dict,
@@ -38,7 +46,28 @@ pub async fn chat_completions(State(state): State<AppState>, Json(req): Json<Cha
         &req,
     )
     .await;
+    let latency_ms = started.elapsed().as_millis() as u64;
     let model = req.model.clone().unwrap_or_else(|| "lucid".into());
+
+    // Journalisation : hors de correct() (signature figée), couvre stream + non-stream.
+    if state.store.is_enabled() {
+        let user_agent = headers
+            .get(axum::http::header::USER_AGENT)
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.to_string());
+        state.store.log(LogEntry {
+            ts_ms: crate::store::now_ms(),
+            status: outcome.status.into(),
+            input: correction::extract_input(&req.messages),
+            output: outcome.text.clone(),
+            latency_ms,
+            backend_kind: state.config.backend.kind.clone(),
+            model: model.clone(),
+            stream: req.stream,
+            user_agent,
+            dict: dict.clone(),
+        });
+    }
 
     if req.stream {
         return super::stream::sse_response(outcome.text, model);

@@ -4,6 +4,7 @@ use lucid::backends::mock::MockBackend;
 use lucid::config::Config;
 use lucid::dictionary::{Dictionary, DictionaryStore};
 use lucid::server::{build_app, AppState};
+use lucid::store::Store;
 use std::sync::Arc;
 use tower::ServiceExt;
 
@@ -14,6 +15,7 @@ fn app_with(backend: MockBackend) -> axum::Router {
         config: Arc::new(cfg),
         backend: Arc::new(backend),
         dictionary: Arc::new(DictionaryStore::in_memory(Dictionary::default())),
+        store: Store::disabled(),
     })
 }
 

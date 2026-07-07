@@ -6,6 +6,7 @@ pub mod correction;
 pub mod dictionary;
 pub mod openai;
 pub mod server;
+pub mod store;
 
 use std::sync::Arc;
 
@@ -18,6 +19,17 @@ pub async fn run_server(cfg: config::Config) -> anyhow::Result<()> {
     let dict_path = config::dictionary_path()?;
     let dictionary = Arc::new(dictionary::DictionaryStore::load(&dict_path));
     let backend = backends::from_config(&cfg.backend);
+    let store = if cfg.journal.enabled {
+        match store::Store::open(&config::journal_path()?, &cfg.journal) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Journal désactivé (erreur SQLite) : {e}");
+                store::Store::disabled()
+            }
+        }
+    } else {
+        store::Store::disabled()
+    };
     let addr = format!("{}:{}", cfg.server.host, cfg.server.port);
 
     // Affiche l'endpoint + le bearer pour copier-coller dans VoiceInk.
@@ -31,6 +43,7 @@ pub async fn run_server(cfg: config::Config) -> anyhow::Result<()> {
         config: Arc::new(cfg),
         backend,
         dictionary,
+        store,
     };
     let app = server::build_app(state);
     let listener = tokio::net::TcpListener::bind(&addr).await?;

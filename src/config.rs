@@ -13,6 +13,25 @@ pub struct Config {
     pub server: ServerConfig,
     pub backend: BackendConfig,
     pub correction: CorrectionConfig,
+    #[serde(default)]
+    pub journal: JournalConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JournalConfig {
+    /// Journalisation active.
+    pub enabled: bool,
+    /// Stocker le texte des dictées (sinon : métadonnées seules).
+    pub store_text: bool,
+    /// Rétention en jours (0 = illimité) ; purge au démarrage.
+    pub retention_days: u32,
+}
+
+impl Default for JournalConfig {
+    fn default() -> Self {
+        // Décision produit : texte activé par défaut (100% local), rétention 30j.
+        JournalConfig { enabled: true, store_text: true, retention_days: 30 }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -75,6 +94,7 @@ impl Default for Config {
                 dict_token_budget: 256,
                 stop: vec!["<|im_start|>".into(), "<|im_end|>".into()],
             },
+            journal: JournalConfig::default(),
         }
     }
 }
@@ -91,6 +111,10 @@ pub fn config_path() -> anyhow::Result<PathBuf> {
 
 pub fn dictionary_path() -> anyhow::Result<PathBuf> {
     Ok(support_dir()?.join("dictionary.json"))
+}
+
+pub fn journal_path() -> anyhow::Result<PathBuf> {
+    Ok(support_dir()?.join("journal.sqlite"))
 }
 
 impl Config {
