@@ -26,6 +26,9 @@ pub fn build_app(state: AppState) -> Router {
     let protected = Router::new()
         .route("/v1/models", get(routes::models))
         .route("/v1/chat/completions", post(routes::chat_completions))
+        // Certains clients (ex. VoiceInk) postent la complétion directement sur
+        // l'« API Endpoint URL » sans ajouter /chat/completions. On accepte donc /v1.
+        .route("/v1", post(routes::chat_completions))
         .route_layer(axum::middleware::from_fn_with_state(
             state.clone(),
             auth::require_bearer,

@@ -59,3 +59,26 @@ async fn failsafe_renvoie_l_entree_si_backend_echoue() {
     let v: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
     assert_eq!(v["choices"][0]["message"]["content"], "phrase originale");
 }
+
+#[tokio::test]
+async fn completion_sur_base_url_v1_directe() {
+    // VoiceInk poste la complétion directement sur /v1 (sans /chat/completions).
+    let app = app_with(MockBackend::with_response("Corrigé"));
+    let resp = app
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/v1")
+                .header("content-type", "application/json")
+                .body(Body::from(
+                    r#"{"model":"lucid","messages":[{"role":"user","content":"test"}]}"#,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
+    let v: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(v["choices"][0]["message"]["content"], "Corrigé");
+}
