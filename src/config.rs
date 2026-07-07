@@ -229,6 +229,18 @@ mod tests {
     }
 
     #[test]
+    fn config_roundtrip_toml() {
+        // La config (dont [journal] et les champs backend) survit à un aller-retour TOML.
+        let c = Config::default();
+        let s = toml::to_string_pretty(&c).unwrap();
+        let back: Config = toml::from_str(&s).unwrap();
+        assert_eq!(back.server.port, c.server.port);
+        assert_eq!(back.backend.kind, c.backend.kind);
+        assert_eq!(back.journal.store_text, c.journal.store_text);
+        assert_eq!(back.journal.retention_days, c.journal.retention_days);
+    }
+
+    #[test]
     fn ensure_bearer_genere_si_absent() {
         let mut c = Config::default();
         c.server.bearer_token = None;

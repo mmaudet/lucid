@@ -66,6 +66,27 @@ async fn disabled_ne_journalise_rien() {
 }
 
 #[tokio::test]
+async fn stats_summary_agrege() {
+    let path = tmp_db("stats");
+    let _ = std::fs::remove_file(&path);
+    let store = Store::open(&path, &JournalConfig::default()).unwrap();
+    let dict = Arc::new(Dictionary::from_json(
+        r#"{"terms":[{"canonical":"VoiceInk","aliases":[]}]}"#,
+    ));
+    store.log(entry("voice inque", "VoiceInk installé", LogStatus::Corrected, dict));
+    store.log(entry("bonjour", "bonjour", LogStatus::Unchanged, Arc::new(Dictionary::default())));
+    store.flush().await;
+
+    let s = store.stats_summary().await;
+    assert_eq!(s.total, 2);
+    assert_eq!(s.corrected, 1);
+    assert_eq!(s.unchanged, 1);
+    assert!(s.top_terms.iter().any(|t| t.canonical == "VoiceInk"));
+    assert!(!s.by_day.is_empty());
+    let _ = std::fs::remove_file(&path);
+}
+
+#[tokio::test]
 async fn clear_vide_le_journal() {
     let path = tmp_db("clear");
     let _ = std::fs::remove_file(&path);
