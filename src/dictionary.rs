@@ -1,15 +1,18 @@
-//! Dictionnaire de corrections en lecture seule (édition différée à M4).
+//! Dictionnaire de corrections : chargement, rendu pour le prompt, et handle
+//! partagé `DictionaryStore` (lecture lock-free via ArcSwap + persistance atomique).
 
-use serde::Deserialize;
-use std::path::Path;
+use arc_swap::ArcSwap;
+use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Dictionary {
     #[serde(default)]
     pub terms: Vec<Term>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Term {
     pub canonical: String,
     #[serde(default)]
@@ -58,6 +61,68 @@ impl Dictionary {
     }
 }
 
+/// Handle partagé du dictionnaire : lecture lock-free (ArcSwap) sur le hot-path
+/// de correction, remplacement atomique persisté pour l'édition (M4), rechargement
+/// à chaud. Le MÊME `DictionaryStore` est porté à travers les redémarrages du serveur
+/// (voir ServerManager) pour que les éditions continuent de se propager.
+pub struct DictionaryStore {
+    inner: ArcSwap<Dictionary>,
+    path: Option<PathBuf>,
+}
+
+impl DictionaryStore {
+    /// Charge depuis le disque ; le chemin est mémorisé pour la persistance.
+    pub fn load(path: &Path) -> Self {
+        DictionaryStore {
+            inner: ArcSwap::from_pointee(Dictionary::load(path)),
+            path: Some(path.to_path_buf()),
+        }
+    }
+
+    /// Sans persistance (tests / dev).
+    pub fn in_memory(dict: Dictionary) -> Self {
+        DictionaryStore {
+            inner: ArcSwap::from_pointee(dict),
+            path: None,
+        }
+    }
+
+    /// Lecture lock-free du dictionnaire courant (hot-path correction).
+    pub fn snapshot(&self) -> Arc<Dictionary> {
+        self.inner.load_full()
+    }
+
+    /// Remplace le dictionnaire courant et le persiste atomiquement (si chemin connu).
+    pub fn replace(&self, dict: Dictionary) -> std::io::Result<()> {
+        if let Some(path) = &self.path {
+            persist_atomic(path, &dict)?;
+        }
+        self.inner.store(Arc::new(dict));
+        Ok(())
+    }
+
+    /// Recharge depuis le disque (si chemin connu) ; sinon no-op.
+    pub fn reload(&self) -> std::io::Result<()> {
+        if let Some(path) = &self.path {
+            self.inner.store(Arc::new(Dictionary::load(path)));
+        }
+        Ok(())
+    }
+}
+
+/// Écriture atomique : fichier temporaire puis rename.
+fn persist_atomic(path: &Path, dict: &Dictionary) -> std::io::Result<()> {
+    let json = serde_json::to_string_pretty(dict)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let tmp = path.with_extension("json.tmp");
+    std::fs::write(&tmp, json)?;
+    std::fs::rename(&tmp, path)?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,7 +151,35 @@ mod tests {
         }
         let d = Dictionary { terms };
         let rendu = d.render_for_prompt(50); // petit budget
-        // Tronqué : bien moins que 1000 lignes.
         assert!(rendu.lines().count() < 100);
+    }
+
+    #[test]
+    fn store_in_memory_snapshot_et_replace() {
+        let s = DictionaryStore::in_memory(Dictionary::default());
+        assert!(s.snapshot().terms.is_empty());
+        s.replace(Dictionary::from_json(
+            r#"{"terms":[{"canonical":"LINAGORA","aliases":[]}]}"#,
+        ))
+        .unwrap();
+        assert_eq!(s.snapshot().terms.len(), 1);
+        assert_eq!(s.snapshot().terms[0].canonical, "LINAGORA");
+    }
+
+    #[test]
+    fn store_persiste_et_recharge_depuis_disque() {
+        let path = std::env::temp_dir().join(format!("lucid_test_dict_{}.json", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let s = DictionaryStore::load(&path); // absent -> vide
+        assert!(s.snapshot().terms.is_empty());
+        s.replace(Dictionary::from_json(
+            r#"{"terms":[{"canonical":"VoiceInk","aliases":["voice inque"]}]}"#,
+        ))
+        .unwrap();
+        // Un nouveau store relit ce qui a été persisté.
+        let s2 = DictionaryStore::load(&path);
+        assert_eq!(s2.snapshot().terms.len(), 1);
+        assert_eq!(s2.snapshot().terms[0].canonical, "VoiceInk");
+        let _ = std::fs::remove_file(&path);
     }
 }

@@ -2,7 +2,7 @@
 
 use crate::backends::Backend;
 use crate::config::Config;
-use crate::dictionary::Dictionary;
+use crate::dictionary::DictionaryStore;
 use axum::routing::{get, post};
 use axum::Router;
 use std::sync::Arc;
@@ -16,7 +16,7 @@ pub mod stream;
 pub struct AppState {
     pub config: Arc<Config>,
     pub backend: Arc<dyn Backend>,
-    pub dictionary: Arc<Dictionary>,
+    pub dictionary: Arc<DictionaryStore>,
 }
 
 pub fn build_app(state: AppState) -> Router {

@@ -30,9 +30,10 @@ pub async fn models() -> Json<serde_json::Value> {
 }
 
 pub async fn chat_completions(State(state): State<AppState>, Json(req): Json<ChatRequest>) -> Response {
+    let dict = state.dictionary.snapshot();
     let outcome = correction::correct(
         &*state.backend,
-        &state.dictionary,
+        &dict,
         &state.config.correction,
         &req,
     )

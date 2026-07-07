@@ -2,7 +2,7 @@ use axum::body::Body;
 use axum::http::Request;
 use lucid::backends::mock::MockBackend;
 use lucid::config::Config;
-use lucid::dictionary::Dictionary;
+use lucid::dictionary::{Dictionary, DictionaryStore};
 use lucid::server::{build_app, AppState};
 use std::sync::Arc;
 use tower::ServiceExt;
@@ -14,7 +14,7 @@ async fn stream_emet_des_chunks_et_done() {
     let app = build_app(AppState {
         config: Arc::new(cfg),
         backend: Arc::new(MockBackend::with_response("Bonjour Michel")),
-        dictionary: Arc::new(Dictionary::default()),
+        dictionary: Arc::new(DictionaryStore::in_memory(Dictionary::default())),
     });
     let resp = app
         .oneshot(

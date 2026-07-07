@@ -16,7 +16,7 @@ pub fn version() -> &'static str {
 /// Démarre le serveur HTTP local (bloquant).
 pub async fn run_server(cfg: config::Config) -> anyhow::Result<()> {
     let dict_path = config::dictionary_path()?;
-    let dictionary = Arc::new(dictionary::Dictionary::load(&dict_path));
+    let dictionary = Arc::new(dictionary::DictionaryStore::load(&dict_path));
     let backend = backends::from_config(&cfg.backend);
     let addr = format!("{}:{}", cfg.server.host, cfg.server.port);
 

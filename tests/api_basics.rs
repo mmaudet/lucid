@@ -2,7 +2,7 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use lucid::backends::mock::MockBackend;
 use lucid::config::Config;
-use lucid::dictionary::Dictionary;
+use lucid::dictionary::{Dictionary, DictionaryStore};
 use lucid::server::{build_app, AppState};
 use std::sync::Arc;
 use tower::ServiceExt;
@@ -13,7 +13,7 @@ fn state(bearer: Option<&str>) -> AppState {
     AppState {
         config: Arc::new(cfg),
         backend: Arc::new(MockBackend::with_response("ok")),
-        dictionary: Arc::new(Dictionary::default()),
+        dictionary: Arc::new(DictionaryStore::in_memory(Dictionary::default())),
     }
 }
 
