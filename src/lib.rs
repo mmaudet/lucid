@@ -1,5 +1,6 @@
 //! Lucid — noyau headless : API compatible OpenAI + correction FR via Luciole-1B.
 
+pub mod api_info;
 pub mod backends;
 pub mod config;
 pub mod correction;
@@ -7,6 +8,7 @@ pub mod dictionary;
 pub mod openai;
 pub mod server;
 pub mod store;
+pub mod supervisor;
 
 use std::sync::Arc;
 

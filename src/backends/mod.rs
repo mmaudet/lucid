@@ -5,6 +5,8 @@ use async_trait::async_trait;
 
 pub mod llamacpp;
 pub mod mock;
+pub mod ollama;
+pub mod openai_http;
 
 pub struct BackendRequest {
     pub messages: Vec<ChatMessage>,
@@ -43,7 +45,7 @@ pub trait Backend: Send + Sync {
 /// Fabrique un backend selon la config.
 pub fn from_config(cfg: &crate::config::BackendConfig) -> std::sync::Arc<dyn Backend> {
     match cfg.kind.as_str() {
-        // "ollama" viendra dans un incrément ultérieur.
+        "ollama" => std::sync::Arc::new(ollama::OllamaBackend::new(cfg)),
         _ => std::sync::Arc::new(llamacpp::LlamaCppBackend::new(cfg)),
     }
 }

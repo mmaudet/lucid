@@ -49,6 +49,36 @@ pub struct BackendConfig {
     pub model: String,
     pub timeout_ms: u64,
     pub health_timeout_ms: u64,
+    /// Lucid supervise-t-il le process backend (ollama serve / llama-server) ?
+    #[serde(default)]
+    pub auto_start: bool,
+    /// Chemin du GGUF (llama-server) pour l'auto-start.
+    #[serde(default)]
+    pub model_path: Option<String>,
+    /// Commande de lancement explicite (sinon déduite du kind).
+    #[serde(default)]
+    pub launch_command: Option<String>,
+    #[serde(default)]
+    pub launch_args: Vec<String>,
+}
+
+impl BackendConfig {
+    pub fn default_base_url(kind: &str) -> &'static str {
+        match kind {
+            "ollama" => "http://127.0.0.1:11434/v1",
+            _ => "http://127.0.0.1:8080/v1",
+        }
+    }
+
+    pub fn validate(&self) -> Result<(), String> {
+        if self.base_url.trim().is_empty() {
+            return Err("base_url du backend vide".into());
+        }
+        if !matches!(self.kind.as_str(), "ollama" | "llamacpp") {
+            return Err(format!("backend inconnu : {}", self.kind));
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,6 +115,10 @@ impl Default for Config {
                 model: "luciole".into(),
                 timeout_ms: 60_000,
                 health_timeout_ms: 2_000,
+                auto_start: false,
+                model_path: None,
+                launch_command: None,
+                launch_args: vec![],
             },
             correction: CorrectionConfig {
                 prompt_mode: PromptMode::Override,
