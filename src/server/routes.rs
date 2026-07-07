@@ -1,11 +1,13 @@
 //! Handlers HTTP.
 
 use axum::extract::State;
-use axum::http::StatusCode;
+use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::json;
 
 use super::AppState;
+use crate::correction;
+use crate::openai::{ChatMessage, ChatRequest, ChatResponse, Choice, Usage, new_id, unix_now};
 
 pub async fn health(State(state): State<AppState>) -> Json<serde_json::Value> {
     let h = state.backend.health().await;
@@ -27,7 +29,38 @@ pub async fn models() -> Json<serde_json::Value> {
     }))
 }
 
-/// Stub — remplacé par l'implémentation complète en Task 12.
-pub async fn chat_completions() -> StatusCode {
-    StatusCode::NOT_IMPLEMENTED
+pub async fn chat_completions(State(state): State<AppState>, Json(req): Json<ChatRequest>) -> Response {
+    let outcome = correction::correct(
+        &*state.backend,
+        &state.dictionary,
+        &state.config.correction,
+        &req,
+    )
+    .await;
+    let model = req.model.clone().unwrap_or_else(|| "lucid".into());
+
+    if req.stream {
+        return super::stream::sse_response(outcome.text, model);
+    }
+
+    let resp = ChatResponse {
+        id: new_id(),
+        object: "chat.completion",
+        created: unix_now(),
+        model,
+        choices: vec![Choice {
+            index: 0,
+            message: ChatMessage {
+                role: "assistant".into(),
+                content: outcome.text,
+            },
+            finish_reason: "stop",
+        }],
+        usage: Usage {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0,
+        },
+    };
+    Json(resp).into_response()
 }

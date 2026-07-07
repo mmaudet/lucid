@@ -10,6 +10,7 @@ use std::sync::Arc;
 pub mod auth;
 pub mod error;
 pub mod routes;
+pub mod stream;
 
 #[derive(Clone)]
 pub struct AppState {
