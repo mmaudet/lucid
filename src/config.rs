@@ -39,6 +39,9 @@ pub struct CorrectionConfig {
     pub top_p: f32,
     pub max_output_ratio: f32,
     pub dict_token_budget: usize,
+    /// Séquences d'arrêt passées au backend (jetons ChatML par défaut).
+    #[serde(default)]
+    pub stop: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -70,6 +73,7 @@ impl Default for Config {
                 top_p: 0.9,
                 max_output_ratio: 2.0,
                 dict_token_budget: 256,
+                stop: vec!["<|im_start|>".into(), "<|im_end|>".into()],
             },
         }
     }

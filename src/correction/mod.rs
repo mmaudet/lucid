@@ -52,6 +52,7 @@ pub async fn correct(
             .max_tokens
             .unwrap_or_else(|| guardrails::compute_max_tokens(&input, cfg.max_output_ratio)),
         model: req.model.clone().unwrap_or_else(|| "luciole".into()),
+        stop: cfg.stop.clone(),
     };
 
     match backend.complete(&breq).await {

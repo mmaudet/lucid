@@ -37,6 +37,8 @@ struct UpstreamRequest<'a> {
     top_p: f32,
     max_tokens: u32,
     stream: bool,
+    #[serde(skip_serializing_if = "<[String]>::is_empty")]
+    stop: &'a [String],
 }
 
 #[derive(Deserialize)]
@@ -62,6 +64,7 @@ impl Backend for LlamaCppBackend {
             top_p: req.top_p,
             max_tokens: req.max_tokens,
             stream: false,
+            stop: &req.stop,
         };
         let resp = self
             .client

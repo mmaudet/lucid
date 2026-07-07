@@ -13,6 +13,7 @@ fn req() -> BackendRequest {
         top_p: 0.9,
         max_tokens: 128,
         model: "luciole".into(),
+        stop: vec![],
     }
 }
 

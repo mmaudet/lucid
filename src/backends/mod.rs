@@ -12,6 +12,8 @@ pub struct BackendRequest {
     pub top_p: f32,
     pub max_tokens: u32,
     pub model: String,
+    /// Séquences d'arrêt (ex. jetons ChatML) pour éviter la fuite de tours.
+    pub stop: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy)]
