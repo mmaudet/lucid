@@ -1,0 +1,8 @@
+{
+  "terms": [
+    { "canonical": "LINAGORA", "aliases": ["linagora", "lina gora", "linagra"] },
+    { "canonical": "Michel-Marie Maudet", "aliases": ["michel marie mode", "michel marie maudé", "michel-marie mode"] },
+    { "canonical": "Luciole-1B", "aliases": ["lucille un b", "luciole un b", "lucielle un b", "luciole 1b"] },
+    { "canonical": "VoiceInk", "aliases": ["voice inque", "voix inc", "voice ink"] }
+  ]
+}

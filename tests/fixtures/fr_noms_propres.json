@@ -1,0 +1,7 @@
+[
+  { "in": "jai installe voice inque sur mon ordinateur", "expect_contains": "VoiceInk" },
+  { "in": "le modele lucille un b est tres rapide sur mon mac", "expect_contains": "Luciole-1B" },
+  { "in": "bonjour je mapelle jan dupont et je travaille a lyon", "expect_contains": "Lyon" },
+  { "in": "on se voit a la reunion de mardi prochain matin", "expect_contains": "réunion" },
+  { "in": "rendez-vous a paris demain avec marie", "expect_contains": "Paris" }
+]
