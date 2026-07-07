@@ -1,5 +1,7 @@
 //! Lucid — noyau headless : API compatible OpenAI + correction FR via Luciole-1B.
 
+pub mod openai;
+
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
