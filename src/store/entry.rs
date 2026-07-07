@@ -1,6 +1,7 @@
 //! Entrée de journal + statut, découplés de `correction`.
 
 use crate::dictionary::Dictionary;
+use serde::Serialize;
 use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,7 +49,7 @@ pub struct LogEntry {
 }
 
 /// Ligne de journal renvoyée aux lecteurs (fenêtre Journal, stats).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct JournalRow {
     pub id: i64,
     pub ts_ms: i64,

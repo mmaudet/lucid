@@ -33,6 +33,14 @@ pub fn run(config: Config) -> anyhow::Result<()> {
             commands::start_server,
             commands::stop_server,
             commands::open_window,
+            commands::dict_list,
+            commands::dict_save,
+            commands::dict_add_term,
+            commands::journal_list,
+            commands::journal_clear,
+            commands::stats_summary,
+            commands::config_get,
+            commands::config_save,
         ])
         .setup(|app| {
             // App barre de menus : pas d'icône dans le Dock.

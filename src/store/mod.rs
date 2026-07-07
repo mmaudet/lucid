@@ -8,6 +8,31 @@ pub use entry::{JournalRow, LogEntry, LogStatus};
 
 use crate::config::JournalConfig;
 use rusqlite::{params, Connection};
+use serde::Serialize;
+
+/// Agrégats pour la fenêtre Statistiques.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct StatsSummary {
+    pub total: i64,
+    pub corrected: i64,
+    pub unchanged: i64,
+    pub failsafe: i64,
+    pub avg_latency_ms: f64,
+    pub by_day: Vec<DayCount>,
+    pub top_terms: Vec<TermCount>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DayCount {
+    pub day: String,
+    pub count: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct TermCount {
+    pub canonical: String,
+    pub count: i64,
+}
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{sync_channel, Receiver, SyncSender};
@@ -146,6 +171,15 @@ impl Store {
             .await
             .unwrap_or_default()
     }
+
+    pub async fn stats_summary(&self) -> StatsSummary {
+        let Some(path) = self.inner.path.clone() else {
+            return StatsSummary::default();
+        };
+        tokio::task::spawn_blocking(move || read_stats(&path).unwrap_or_default())
+            .await
+            .unwrap_or_default()
+    }
 }
 
 fn run_writer(conn: Connection, rx: Receiver<Msg>, store_text: Arc<AtomicBool>) {
@@ -232,6 +266,58 @@ fn read_recent(path: &Path, limit: i64) -> rusqlite::Result<Vec<JournalRow>> {
         })
     })?;
     rows.collect()
+}
+
+fn read_stats(path: &Path) -> rusqlite::Result<StatsSummary> {
+    let conn = Connection::open(path)?;
+    let total: i64 = conn.query_row("SELECT COUNT(*) FROM corrections", [], |r| r.get(0))?;
+    let count_status = |s: &str| -> i64 {
+        conn.query_row(
+            "SELECT COUNT(*) FROM corrections WHERE status = ?1",
+            [s],
+            |r| r.get(0),
+        )
+        .unwrap_or(0)
+    };
+    let avg_latency_ms: f64 = conn.query_row(
+        "SELECT COALESCE(AVG(latency_ms), 0) FROM corrections",
+        [],
+        |r| r.get(0),
+    )?;
+
+    let mut by_day = Vec::new();
+    {
+        let mut stmt = conn.prepare(
+            "SELECT date(ts_ms/1000, 'unixepoch', 'localtime') AS d, COUNT(*) \
+             FROM corrections GROUP BY d ORDER BY d DESC LIMIT 14",
+        )?;
+        let rows = stmt.query_map([], |r| Ok(DayCount { day: r.get(0)?, count: r.get(1)? }))?;
+        for row in rows {
+            by_day.push(row?);
+        }
+    }
+
+    let mut top_terms = Vec::new();
+    {
+        let mut stmt = conn.prepare(
+            "SELECT canonical, COUNT(*) AS c FROM correction_hits \
+             GROUP BY canonical ORDER BY c DESC LIMIT 10",
+        )?;
+        let rows = stmt.query_map([], |r| Ok(TermCount { canonical: r.get(0)?, count: r.get(1)? }))?;
+        for row in rows {
+            top_terms.push(row?);
+        }
+    }
+
+    Ok(StatsSummary {
+        total,
+        corrected: count_status("corrected"),
+        unchanged: count_status("unchanged"),
+        failsafe: count_status("failsafe"),
+        avg_latency_ms,
+        by_day,
+        top_terms,
+    })
 }
 
 /// Mesure d'édition simple (positions de mots divergentes + écart de longueur).

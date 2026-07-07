@@ -177,6 +177,17 @@ impl Config {
         }
         Ok(cfg)
     }
+
+    /// Persiste la config dans config.toml (écriture atomique tmp+rename).
+    pub fn save(&self) -> anyhow::Result<()> {
+        let path = config_path()?;
+        std::fs::create_dir_all(support_dir()?)?;
+        let content = toml::to_string_pretty(self)?;
+        let tmp = path.with_extension("toml.tmp");
+        std::fs::write(&tmp, content)?;
+        std::fs::rename(&tmp, &path)?;
+        Ok(())
+    }
 }
 
 /// Génère un jeton bearer si None (aléatoire alphanumérique 40).
