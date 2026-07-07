@@ -126,7 +126,7 @@ impl Default for Config {
                 top_p: 0.9,
                 max_output_ratio: 2.0,
                 dict_token_budget: 256,
-                stop: vec!["<|im_start|>".into(), "<|im_end|>".into()],
+                stop: vec!["\n".into(), "<|im_start|>".into(), "<|im_end|>".into()],
             },
             journal: JournalConfig::default(),
         }

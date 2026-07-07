@@ -55,6 +55,23 @@ pub fn run(config: Config) -> anyhow::Result<()> {
             });
 
             tray::build_tray(app.handle())?;
+
+            // Hook de vérification : ouvre une fenêtre au démarrage si LUCID_DEBUG_OPEN
+            // est définie (ex. LUCID_DEBUG_OPEN=journal). Inerte sinon.
+            if let Ok(v) = std::env::var("LUCID_DEBUG_OPEN") {
+                let view = match v.as_str() {
+                    "dictionary" => Some(windows::View::Dictionary),
+                    "settings" => Some(windows::View::Settings),
+                    "stats" => Some(windows::View::Stats),
+                    _ => Some(windows::View::Journal),
+                };
+                if let Some(view) = view {
+                    match windows::open_view(app.handle(), view) {
+                        Ok(_) => eprintln!("[debug] open_view {view:?} OK"),
+                        Err(e) => eprintln!("[debug] open_view {view:?} ERREUR: {e}"),
+                    }
+                }
+            }
             Ok(())
         })
         .run(tauri::generate_context!())?;
