@@ -23,15 +23,17 @@ L'app Tauri héberge le serveur **dans le même process** et pilote tout depuis 
 (démarrer/arrêter, ouvrir les fenêtres, copier l'URL/le token, quitter).
 
 ```bash
-# Lancer en développement (icône « Lucid » dans la barre de menus)
-cargo run --features gui
-# Si le port 8790 est occupé : LUCID_SERVER__PORT=8795 cargo run --features gui
+# Construire et lancer l'app (recommandé) :
+cargo tauri build --features gui             # -> target/release/bundle/macos/Lucid.app
+open target/release/bundle/macos/Lucid.app   # icône « Lucid » dans la barre de menus
 
-# Construire le .app (macOS) :
-cargo tauri icon icons/icon.png        # génère le jeu d'icônes (une fois)
-cargo tauri build --features gui        # -> target/release/bundle/macos/Lucid.app
+# Développement avec rechargement à chaud :
+cargo tauri dev --features gui
+# (port occupé : préfixer par LUCID_SERVER__PORT=8795)
 ```
 
+> ⚠️ **Lancez le `.app`** (ou `cargo tauri dev`), pas `cargo run --features gui` : hors d'un
+> vrai bundle `.app`, WKWebView n'affiche pas les fenêtres (le tray et le serveur, eux, marchent).
 > Le `.app` n'est pas encore signé/notarisé (M8) : au 1er lancement, clic droit → *Ouvrir*.
 > `cargo test` reste **headless** (sans Node ni Tauri) grâce à la feature optionnelle `gui`.
 
