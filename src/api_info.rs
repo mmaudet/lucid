@@ -2,8 +2,9 @@
 //! et les guides d'intégration. Fonction pure, non gatée (utilisable partout).
 
 use crate::config::Config;
+use serde::Serialize;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ApiInfo {
     pub base_url: String,
     pub api_key: String,

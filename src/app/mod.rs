@@ -1,13 +1,16 @@
-//! Socle de l'app barre de menus (Tauri v2, feature `gui`). Vague 1 : minimal.
+//! Socle de l'app barre de menus (Tauri v2, feature `gui`).
 //!
-//! État managé UNIQUE (`AppRuntime`) détenant le `ServerManager`. Les fenêtres
-//! Svelte et la couche de commandes viendront en Vague 2 ; ici on pose le socle
-//! (tray + démarrage du serveur in-process) sur le runtime Tokio de Tauri.
+//! État managé UNIQUE (`AppRuntime`) détenant le `ServerManager`. La couche de
+//! commandes (`commands`) et les fenêtres (`windows`) sont partagées avec le menu
+//! du tray (`tray`). Le serveur axum tourne dans le runtime Tokio de Tauri.
+
+mod commands;
+mod tray;
+mod windows;
 
 use crate::config::Config;
 use crate::runtime::ServerManager;
 use std::sync::Arc;
-use tauri::tray::TrayIconBuilder;
 use tauri::{ActivationPolicy, Manager};
 use tokio::sync::Mutex;
 
@@ -22,7 +25,15 @@ pub fn run(config: Config) -> anyhow::Result<()> {
     };
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_clipboard_manager::init())
         .manage(app_runtime)
+        .invoke_handler(tauri::generate_handler![
+            commands::server_status,
+            commands::endpoint_info,
+            commands::start_server,
+            commands::stop_server,
+            commands::open_window,
+        ])
         .setup(|app| {
             // App barre de menus : pas d'icône dans le Dock.
             app.set_activation_policy(ActivationPolicy::Accessory);
@@ -35,11 +46,7 @@ pub fn run(config: Config) -> anyhow::Result<()> {
                 }
             });
 
-            // Icône barre de menus (titre texte pour l'instant ; icône template en M8).
-            TrayIconBuilder::with_id("lucid-tray")
-                .title("Lucid")
-                .tooltip("Lucid — correcteur de dictée FR (local)")
-                .build(app)?;
+            tray::build_tray(app.handle())?;
             Ok(())
         })
         .run(tauri::generate_context!())?;
