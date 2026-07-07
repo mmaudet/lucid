@@ -5,6 +5,7 @@
 # Tauri / frontend
 /gen/
 /ui/node_modules/
+/ui/dist/
 
 # Modèles GGUF (volumineux — jamais committés)
 *.gguf

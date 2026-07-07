@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "identifier": "com.linagora.lucid",
   "build": {
-    "frontendDist": "ui/dist"
+    "frontendDist": "ui/dist",
+    "beforeBuildCommand": "npm --prefix ui run build",
+    "beforeDevCommand": "npm --prefix ui run dev",
+    "devUrl": "http://localhost:5173"
   },
   "app": {
     "windows": [],
