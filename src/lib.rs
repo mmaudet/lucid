@@ -6,50 +6,30 @@ pub mod config;
 pub mod correction;
 pub mod dictionary;
 pub mod openai;
+pub mod runtime;
 pub mod server;
 pub mod store;
 pub mod supervisor;
-
-use std::sync::Arc;
 
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
-/// Démarre le serveur HTTP local (bloquant).
+/// Démarre le serveur HTTP local (bloquant jusqu'à Ctrl-C).
 pub async fn run_server(cfg: config::Config) -> anyhow::Result<()> {
-    let dict_path = config::dictionary_path()?;
-    let dictionary = Arc::new(dictionary::DictionaryStore::load(&dict_path));
-    let backend = backends::from_config(&cfg.backend);
-    let store = if cfg.journal.enabled {
-        match store::Store::open(&config::journal_path()?, &cfg.journal) {
-            Ok(s) => s,
-            Err(e) => {
-                eprintln!("Journal désactivé (erreur SQLite) : {e}");
-                store::Store::disabled()
-            }
-        }
-    } else {
-        store::Store::disabled()
-    };
-    let addr = format!("{}:{}", cfg.server.host, cfg.server.port);
+    let mut mgr = runtime::ServerManager::new(cfg);
 
     // Affiche l'endpoint + le bearer pour copier-coller dans VoiceInk.
-    println!("Lucid en écoute sur http://{addr}/v1");
-    match &cfg.server.bearer_token {
+    let info = api_info::api_info(mgr.config());
+    println!("Lucid en écoute sur {}", info.base_url);
+    match &mgr.config().server.bearer_token {
         Some(t) if !t.is_empty() => println!("Token bearer : {t}"),
         _ => println!("Auth bearer : désactivée"),
     }
 
-    let state = server::AppState {
-        config: Arc::new(cfg),
-        backend,
-        dictionary,
-        store,
-    };
-    let app = server::build_app(state);
-    let listener = tokio::net::TcpListener::bind(&addr).await?;
-    axum::serve(listener, app).await?;
+    mgr.start().await?;
+    tokio::signal::ctrl_c().await?;
+    mgr.stop().await;
     Ok(())
 }
 
