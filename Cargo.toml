@@ -11,7 +11,17 @@ path = "src/lib.rs"
 name = "lucid"
 path = "src/main.rs"
 
+[features]
+# Interface barre de menus Tauri. Sans cette feature, la crate compile et teste
+# en headless (sans Node ni Tauri) — les tests restent verts.
+gui = ["dep:tauri", "dep:tauri-plugin-clipboard-manager"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
 [dependencies]
+tauri = { version = "2", features = ["tray-icon"], optional = true }
+tauri-plugin-clipboard-manager = { version = "2", optional = true }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "signal", "sync"] }
 axum = { version = "0.8", features = ["macros"] }
 tower = { version = "0.5", features = ["util"] }

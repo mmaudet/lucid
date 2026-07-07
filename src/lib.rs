@@ -11,6 +11,9 @@ pub mod server;
 pub mod store;
 pub mod supervisor;
 
+#[cfg(feature = "gui")]
+pub mod app;
+
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }

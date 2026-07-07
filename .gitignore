@@ -2,6 +2,10 @@
 /target/
 **/*.rs.bk
 
+# Tauri / frontend
+/gen/
+/ui/node_modules/
+
 # Modèles GGUF (volumineux — jamais committés)
 *.gguf
 /models/
