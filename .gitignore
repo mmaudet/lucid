@@ -1,0 +1,26 @@
+# Build Rust
+/target/
+**/*.rs.bk
+
+# Modèles GGUF (volumineux — jamais committés)
+*.gguf
+/models/
+
+# macOS
+.DS_Store
+
+# Données / état local de dev
+/.lucid-data/
+*.sqlite
+*.sqlite-*
+*.db
+
+# Logs
+*.log
+
+# Docs de travail Superpowers (non versionnés, conservés en local)
+docs/superpowers/
+
+# Divers éditeurs / OS
+.idea/
+.vscode/
