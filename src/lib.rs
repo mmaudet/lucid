@@ -1,5 +1,6 @@
 //! Lucid — noyau headless : API compatible OpenAI + correction FR via Luciole-1B.
 
+pub mod config;
 pub mod openai;
 
 pub fn version() -> &'static str {
