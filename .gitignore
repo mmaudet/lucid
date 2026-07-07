@@ -7,6 +7,13 @@
 /ui/node_modules/
 /ui/dist/
 
+# Icônes générées non-macOS (cargo tauri icon) — on garde les .png/.icns macOS
+/icons/android/
+/icons/ios/
+/icons/Square*.png
+/icons/StoreLogo.png
+/icons/icon.ico
+
 # Modèles GGUF (volumineux — jamais committés)
 *.gguf
 /models/
