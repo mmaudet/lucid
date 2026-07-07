@@ -6,9 +6,9 @@ compatible **OpenAI**. Lucid insère une étape de *réparation* légère entre 
 toponymes, jargon, accents et ponctuation via **Luciole-1B-Instruct** servi localement par
 `llama.cpp`, sans aucun aller-retour cloud.
 
-> **État : incrément 1 (noyau headless).** Le serveur et le pipeline de correction fonctionnent
-> de bout en bout en ligne de commande. L'app barre de menus, l'éditeur de dictionnaire, le
-> journal SQLite et les statistiques viennent dans les incréments suivants (voir le PRD).
+> **État :** noyau headless + **app barre de menus (Tauri)** avec les 4 fenêtres
+> (Dictionnaire, Journal, Statistiques, Réglages), journal SQLite, adaptateurs
+> llama.cpp **et** Ollama. Reste : packaging signé/notarisé + Login Item (M8).
 
 ## Prérequis
 
@@ -17,7 +17,29 @@ toponymes, jargon, accents et ponctuation via **Luciole-1B-Instruct** servi loca
   ⚠️ Pas une variante « actions »/« SFT » : ce sont des routeurs d'intentions qui renvoient du
   JSON, pas des correcteurs.
 
-## Démarrage rapide
+## Application barre de menus (GUI)
+
+L'app Tauri héberge le serveur **dans le même process** et pilote tout depuis la barre de menus
+(démarrer/arrêter, ouvrir les fenêtres, copier l'URL/le token, quitter).
+
+```bash
+# Lancer en développement (icône « Lucid » dans la barre de menus)
+cargo run --features gui
+# Si le port 8790 est occupé : LUCID_SERVER__PORT=8795 cargo run --features gui
+
+# Construire le .app (macOS) :
+cargo tauri icon icons/icon.png        # génère le jeu d'icônes (une fois)
+cargo tauri build --features gui        # -> target/release/bundle/macos/Lucid.app
+```
+
+> Le `.app` n'est pas encore signé/notarisé (M8) : au 1er lancement, clic droit → *Ouvrir*.
+> `cargo test` reste **headless** (sans Node ni Tauri) grâce à la feature optionnelle `gui`.
+
+Fenêtres : **Dictionnaire** (table éditable, appliquée à chaud), **Journal** (avant/après,
+filtre, « + dico », purge), **Statistiques** (volume, % modifiées, latence, top termes),
+**Réglages** (serveur, backend, correction, journal).
+
+## Démarrage rapide (headless / CLI)
 
 1. **Lancer le modèle** (llama-server) :
    ```bash
