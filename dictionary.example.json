@@ -1,0 +1,21 @@
+{
+  "_comment": "Exemple de dictionnaire Lucid. Copiez-le vers ~/Library/Application Support/Lucid/dictionary.json (ou éditez-le dans la fenêtre Dictionnaire). RÈGLE D'OR : un alias doit être une graphie DISTINCTIVE (une vraie faute de transcription), JAMAIS un mot français courant — sinon le garde-fou le refuse (« aime »→Aimé corromprait « il aime… »). Pour un nom dont la seule variante est un mot courant, utilisez un alias multi-mots (ex. « thierry aime »). Le dictionnaire est appliqué de façon déterministe sur la sortie ; on peut en mettre plusieurs centaines sans coût.",
+
+  "terms": [
+    { "canonical": "LINAGORA", "aliases": ["linagora", "l'inagora", "lina gora"] },
+    { "canonical": "TWAKE", "aliases": ["twake", "tweak", "twack", "twake ai"] },
+    { "canonical": "OnlyOffice", "aliases": ["onlyoffice", "onyoffice", "only office"] },
+    { "canonical": "Nextcloud", "aliases": ["nextcloud", "next cloud"] },
+    { "canonical": "DINUM", "aliases": ["dinum", "dinu", "d'inum"] },
+    { "canonical": "DGFIP", "aliases": ["dgfip"] },
+
+    { "canonical": "Michel-Marie Maudet", "aliases": ["michel marie mode", "michel-marie mode"] },
+    { "canonical": "Jean Dupont", "aliases": ["jean dupond", "jean du pont"] },
+    { "canonical": "Lefebvre", "aliases": ["le fevre", "lefevre"] },
+    { "canonical": "Rémi", "aliases": ["remi"] },
+    { "canonical": "Gaël", "aliases": ["gael"] },
+
+    { "canonical": "Luciole-1B", "aliases": ["luciole un b", "lucielle un b", "luciole 1b"] },
+    { "canonical": "VoiceInk", "aliases": ["voice inque", "voice ink"] }
+  ]
+}

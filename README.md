@@ -84,12 +84,22 @@ Même configuration (3 champs) pour **Handy** et **FluidVoice**.
 
 ## Dictionnaire
 
-Ajoutez vos graphies métier dans `~/Library/Application Support/Lucid/dictionary.json` :
-```json
-{ "terms": [ { "canonical": "LINAGORA", "aliases": ["linagora", "lina gora"] } ] }
-```
-Lucid les injecte dans le prompt (« utilise ces graphies exactes »). Rechargé au prochain
-démarrage du service (édition à chaud + UI : incrément M4).
+Vos graphies métier (noms propres, patronymes, marques, sigles) vivent dans
+`~/Library/Application Support/Lucid/dictionary.json`. Voir **`dictionary.example.json`**
+(à la racine) pour un modèle commenté ; éditez à chaud via la fenêtre **Dictionnaire**.
+
+Le dictionnaire agit sur **deux couches** :
+1. **Injection dans le prompt** — biaise Luciole vers les bonnes graphies (~30–50 termes, budget de jetons).
+2. **Post-traitement déterministe** (`apply_dictionary`) — remplace ensuite chaque variante par
+   la graphie canonique, hors LLM, aux frontières de mot. C'est ce qui rend les noms **fiables**
+   même quand le petit modèle flanche. Coût négligeable → on peut y mettre **plusieurs centaines**
+   de termes.
+
+> **Règle d'or :** un alias doit être une graphie **distinctive** (une vraie faute de
+> transcription, ex. `l'inagora`, `onyoffice`), **jamais un mot français courant**. Un alias
+> mono-mot courant (`aime`→Aimé corromprait « il aime… ») est **automatiquement refusé** à
+> l'édition et jamais appliqué au runtime. Pour un nom dont la seule variante est un mot courant,
+> utilisez un alias **multi-mots** (ex. `thierry aime`).
 
 ## Configuration
 
