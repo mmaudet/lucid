@@ -11,8 +11,11 @@ use crate::api_info::{api_info, ApiInfo};
 
 pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let menu = build_menu(app)?;
+    // Icône barre de menus : carré blanc + « L » noir (couleurs conservées, non-template).
+    // include_image! traite le PNG au build ; chemin relatif à la racine de la crate.
     TrayIconBuilder::with_id("lucid-tray")
-        .title("Lucid")
+        .icon(tauri::include_image!("icons/tray.png"))
+        .icon_as_template(false)
         .tooltip("Lucid — correcteur de dictée FR (local)")
         .menu(&menu)
         .on_menu_event(|app, event| on_menu_event(app, event.id().as_ref()))
