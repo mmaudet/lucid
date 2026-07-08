@@ -133,8 +133,14 @@ impl Default for Config {
     }
 }
 
-/// ~/Library/Application Support/Lucid
+/// Dossier de données de Lucid. Par défaut `~/Library/Application Support/Lucid` ;
+/// surchargeable via `LUCID_DATA_DIR` (tests, données démo, portabilité).
 pub fn support_dir() -> anyhow::Result<PathBuf> {
+    if let Ok(dir) = std::env::var("LUCID_DATA_DIR") {
+        if !dir.trim().is_empty() {
+            return Ok(PathBuf::from(dir));
+        }
+    }
     let base = dirs::data_dir().context("dossier de support introuvable")?;
     Ok(base.join("Lucid"))
 }
