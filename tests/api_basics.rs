@@ -58,5 +58,6 @@ async fn models_ok_avec_bearer() {
     assert_eq!(resp.status(), StatusCode::OK);
     let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX).await.unwrap();
     let v: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(v["data"][0]["id"], "lucid");
+    // Le nom API advertise le modèle backend (cohérence avec ce qu'on configure côté STT).
+    assert_eq!(v["data"][0]["id"], "Luciole-1B-Instruct-1.1");
 }

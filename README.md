@@ -142,7 +142,7 @@ fournisseur d'IA « custom » pour le post‑traitement, renseignez ces **trois 
 | Champ | Valeur |
 |---|---|
 | **Base URL / API Endpoint** | `http://127.0.0.1:8790/v1` |
-| **Model** | `lucid` |
+| **Model** | `Luciole-1B-Instruct-1.1` |
 | **API Key** | votre **token bearer** (menu Lucid → *Copier le token*) |
 
 > Ces valeurs sont rappelées dans l'onglet **Accueil**. Un token vide → authentification désactivée
@@ -152,7 +152,7 @@ fournisseur d'IA « custom » pour le post‑traitement, renseignez ces **trois 
 
 1. **Settings → Enhancement** → activez **Enable Enhancement**.
 2. **AI Provider Integration** → **Provider : Custom**.
-3. **API Endpoint URL** : `http://127.0.0.1:8790/v1` — **Model Name** : `lucid` — **API Key** : le token.
+3. **API Endpoint URL** : `http://127.0.0.1:8790/v1` — **Model Name** : `Luciole-1B-Instruct-1.1` — **API Key** : le token.
 4. ⚠️ **Power Mode** : vérifiez que le mode actif (ex. « Par défaut ») a bien **AI Enhancement activé** — sinon la dictée contourne Lucid.
 
 ### Handy
@@ -164,7 +164,7 @@ fournisseur d'IA « custom » pour le post‑traitement, renseignez ces **trois 
 ### FluidVoice
 
 1. Dans les préférences, section **AI / post‑processing**, sélectionnez un endpoint **OpenAI custom**.
-2. Renseignez **Base URL**, **Model** (`lucid`) et **API Key** (token bearer).
+2. Renseignez **Base URL**, **Model** (`Luciole-1B-Instruct-1.1`) et **API Key** (token bearer).
 3. Activez le post‑traitement.
 
 > Le principe est identique pour toute app STT : la pointer vers l'endpoint OpenAI de Lucid.

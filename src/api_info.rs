@@ -21,7 +21,8 @@ pub fn api_info(cfg: &Config) -> ApiInfo {
     ApiInfo {
         base_url: format!("http://{}:{}/v1", cfg.server.host, cfg.server.port),
         api_key,
-        model: "lucid".to_string(),
+        // Nom API = modèle backend réel (cohérence : identique à ce qu'on configure côté STT).
+        model: cfg.backend.model.clone(),
     }
 }
 
@@ -33,7 +34,7 @@ mod tests {
     fn api_info_par_defaut() {
         let info = api_info(&Config::default());
         assert_eq!(info.base_url, "http://127.0.0.1:8790/v1");
-        assert_eq!(info.model, "lucid");
+        assert_eq!(info.model, "Luciole-1B-Instruct-1.1");
         assert_eq!(info.api_key, "local"); // bearer None -> "local"
     }
 

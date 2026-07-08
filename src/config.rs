@@ -112,7 +112,7 @@ impl Default for Config {
             backend: BackendConfig {
                 kind: "llamacpp".into(),
                 base_url: "http://127.0.0.1:8080/v1".into(),
-                model: "Luciole-1B-Instruct".into(),
+                model: "Luciole-1B-Instruct-1.1".into(),
                 timeout_ms: 60_000,
                 health_timeout_ms: 2_000,
                 auto_start: false,

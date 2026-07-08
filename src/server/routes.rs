@@ -25,10 +25,11 @@ pub async fn health(State(state): State<AppState>) -> Json<serde_json::Value> {
     }))
 }
 
-pub async fn models() -> Json<serde_json::Value> {
+pub async fn models(State(state): State<AppState>) -> Json<serde_json::Value> {
+    let model = state.config.backend.model.clone();
     Json(json!({
         "object": "list",
-        "data": [ { "id": "lucid", "object": "model", "owned_by": "lucid" } ]
+        "data": [ { "id": model, "object": "model", "owned_by": "lucid" } ]
     }))
 }
 
@@ -47,7 +48,10 @@ pub async fn chat_completions(
     )
     .await;
     let latency_ms = started.elapsed().as_millis() as u64;
-    let model = req.model.clone().unwrap_or_else(|| "lucid".into());
+    let model = req
+        .model
+        .clone()
+        .unwrap_or_else(|| state.config.backend.model.clone());
 
     // Journalisation : hors de correct() (signature figée), couvre stream + non-stream.
     if state.store.is_enabled() {
