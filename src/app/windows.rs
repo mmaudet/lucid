@@ -26,6 +26,9 @@ impl View {
 /// Crée-ou-refocalise la fenêtre principale ; `section` = section à afficher (hash à la
 /// création, événement `navigate` si la fenêtre existe déjà).
 fn open(app: &AppHandle, section: Option<&str>) -> tauri::Result<()> {
+    // Fenêtre visible -> app « normale » : présente dans Cmd+Tab et le Dock.
+    let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
+
     if let Some(win) = app.get_webview_window(MAIN) {
         win.show()?;
         win.set_focus()?;
@@ -38,11 +41,19 @@ fn open(app: &AppHandle, section: Option<&str>) -> tauri::Result<()> {
         Some(s) => format!("index.html#{s}"),
         None => "index.html".to_string(),
     };
-    WebviewWindowBuilder::new(app, MAIN, WebviewUrl::App(url.into()))
+    let win = WebviewWindowBuilder::new(app, MAIN, WebviewUrl::App(url.into()))
         .title("Lucid")
         .inner_size(940.0, 640.0)
         .min_inner_size(760.0, 480.0)
         .build()?;
+
+    // À la fermeture de la fenêtre : retour en app barre de menus seule.
+    let handle = app.clone();
+    win.on_window_event(move |event| {
+        if let tauri::WindowEvent::Destroyed = event {
+            let _ = handle.set_activation_policy(tauri::ActivationPolicy::Accessory);
+        }
+    });
     Ok(())
 }
 

@@ -75,6 +75,15 @@ pub fn run(config: Config) -> anyhow::Result<()> {
             }
             Ok(())
         })
-        .run(tauri::generate_context!())?;
+        .build(tauri::generate_context!())?
+        .run(|_app, event| {
+            // Fermer la fenêtre ne quitte PAS l'app : elle reste dans la barre de menus.
+            // Seul « Quitter » (app.exit(0), donc code = Some) quitte réellement.
+            if let tauri::RunEvent::ExitRequested { code, api, .. } = event {
+                if code.is_none() {
+                    api.prevent_exit();
+                }
+            }
+        });
     Ok(())
 }
