@@ -16,8 +16,9 @@ use crate::store::{JournalRow, StatsSummary};
 pub async fn server_status(state: State<'_, AppRuntime>) -> Result<serde_json::Value, String> {
     let mgr = state.server.lock().await;
     let running = mgr.is_running();
+    let model = mgr.config().backend.model.clone();
     let reachable = mgr.backend_health().await.reachable;
-    Ok(serde_json::json!({ "running": running, "backend_reachable": reachable }))
+    Ok(serde_json::json!({ "running": running, "backend_reachable": reachable, "model": model }))
 }
 
 #[tauri::command]

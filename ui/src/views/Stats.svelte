@@ -28,6 +28,11 @@
       <div class="tile"><div class="n">{Math.round(s.avg_latency_ms)}<span style="font-size:14px"> ms</span></div><div class="l">latence moyenne</div></div>
       <div class="tile"><div class="n">{s.failsafe}</div><div class="l">fail-safe</div></div>
     </div>
+    <p class="muted" style="font-size:12px; margin-top:10px; max-width:640px">
+      <b>fail-safe</b> : corrections où le modèle n'a pas produit de sortie fiable (vide, aberrante,
+      ou backend injoignable). Dans ce cas Lucid renvoie le texte d'entrée <b>inchangé</b> — pour ne
+      jamais dégrader la dictée. Un taux élevé signale un modèle instable ou un backend indisponible.
+    </p>
 
     <h2>Corrections par jour</h2>
     <div class="card" style="padding:12px 16px">
