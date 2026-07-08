@@ -1,6 +1,6 @@
 <script>
   import { onMount } from "svelte";
-  import { serverStatus, endpointInfo, startServer, stopServer, openWindow } from "../lib.js";
+  import { serverStatus, endpointInfo, startServer, stopServer } from "../lib.js";
 
   let status = $state(null);
   let info = $state(null);
@@ -42,11 +42,7 @@
       {/if}
     </div>
     <div class="toolbar" style="margin-top:16px">
-      <button class="primary" onclick={toggle}>{status.running ? "Arrêter" : "Démarrer"}</button>
-      <button onclick={() => openWindow("dictionary")}>Dictionnaire</button>
-      <button onclick={() => openWindow("journal")}>Journal</button>
-      <button onclick={() => openWindow("stats")}>Statistiques</button>
-      <button onclick={() => openWindow("settings")}>Réglages</button>
+      <button class="primary" onclick={toggle}>{status.running ? "Arrêter le service" : "Démarrer le service"}</button>
     </div>
   {:else}
     <p>Chargement…</p>
