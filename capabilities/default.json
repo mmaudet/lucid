@@ -5,6 +5,7 @@
   "windows": ["*"],
   "permissions": [
     "core:default",
+    "core:event:default",
     "core:window:allow-show",
     "core:window:allow-set-focus",
     "core:window:allow-close",

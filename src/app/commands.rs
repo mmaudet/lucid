@@ -27,6 +27,14 @@ pub async fn endpoint_info(state: State<'_, AppRuntime>) -> Result<ApiInfo, Stri
 }
 
 #[tauri::command]
+pub fn app_build() -> serde_json::Value {
+    serde_json::json!({
+        "version": env!("CARGO_PKG_VERSION"),
+        "build": env!("LUCID_BUILD"),
+    })
+}
+
+#[tauri::command]
 pub async fn start_server(state: State<'_, AppRuntime>) -> Result<(), String> {
     state
         .server

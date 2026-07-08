@@ -30,6 +30,7 @@ pub fn run(config: Config) -> anyhow::Result<()> {
         .invoke_handler(tauri::generate_handler![
             commands::server_status,
             commands::endpoint_info,
+            commands::app_build,
             commands::start_server,
             commands::stop_server,
             commands::open_window,

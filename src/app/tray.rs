@@ -24,6 +24,7 @@ pub fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 }
 
 fn build_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
+    let open = MenuItem::with_id(app, "open_main", "Ouvrir Lucid", true, None::<&str>)?;
     let toggle = MenuItem::with_id(app, "toggle", "Arrêter le service", true, None::<&str>)?;
     let dict = MenuItem::with_id(app, "open_dictionary", "Dictionnaire…", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "open_settings", "Réglages…", true, None::<&str>)?;
@@ -35,6 +36,8 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
     Menu::with_items(
         app,
         &[
+            &open,
+            &PredefinedMenuItem::separator(app)?,
             &toggle,
             &PredefinedMenuItem::separator(app)?,
             &dict,
@@ -52,6 +55,9 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
 
 fn on_menu_event(app: &AppHandle, id: &str) {
     match id {
+        "open_main" => {
+            let _ = super::windows::open_main(app);
+        }
         "toggle" => toggle_server(app),
         "open_dictionary" => {
             let _ = open_view(app, View::Dictionary);
