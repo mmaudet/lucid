@@ -1,12 +1,20 @@
 //! Orchestration de la correction.
+pub mod chunk;
 pub mod common_words;
 pub mod guardrails;
 pub mod prompt;
+
+use futures_util::stream::{self, StreamExt};
 
 use crate::backends::{Backend, BackendRequest};
 use crate::config::CorrectionConfig;
 use crate::dictionary::Dictionary;
 use crate::openai::{ChatMessage, ChatRequest};
+
+/// Au-delà de cette taille (et si plusieurs phrases), on corrige phrase par phrase.
+const CHUNK_THRESHOLD_CHARS: usize = 200;
+/// Nombre de phrases corrigées simultanément (borne les connexions au backend).
+const CHUNK_CONCURRENCY: usize = 6;
 
 pub use guardrails::{Outcome, Status};
 
@@ -48,30 +56,42 @@ pub async fn correct(
     let input = extract_input(&req.messages);
     let incoming_system = extract_system(&req.messages);
     let dict_rendered = dict.render_for_prompt(cfg.dict_token_budget);
-    let messages = prompt::build_messages(
-        cfg.prompt_mode,
-        incoming_system.as_deref(),
-        &dict_rendered,
-        &input,
-    );
 
-    let breq = BackendRequest {
-        messages,
-        temperature: req.temperature.unwrap_or(cfg.temperature),
-        top_p: req.top_p.unwrap_or(cfg.top_p),
-        max_tokens: req
-            .max_tokens
-            .unwrap_or_else(|| guardrails::compute_max_tokens(&input, cfg.max_output_ratio)),
-        model: req.model.clone().unwrap_or_else(|| "luciole".into()),
-        stop: cfg.stop.clone(),
-    };
-
-    let mut outcome = match backend.complete(&breq).await {
-        Ok(output) => guardrails::evaluate(&input, &output, cfg.max_output_ratio),
-        Err(_) => Outcome {
-            text: input.trim().to_string(),
-            status: Status::FailSafe,
-        },
+    // Texte long en plusieurs phrases : corriger CHAQUE phrase séparément (une petite
+    // tâche reste fiable ; un 1B dérive en « mode chatbot » sur un long texte en un appel).
+    // Sinon : une seule passe (comportement historique).
+    let sentences = chunk::split_sentences(&input);
+    let mut outcome = if sentences.len() >= 2 && input.chars().count() > CHUNK_THRESHOLD_CHARS {
+        let sys = incoming_system.as_deref();
+        let dr = dict_rendered.as_str();
+        // Futures construites en boucle (aucune closure passée à un combinateur → pas de
+        // souci HRTB), puis polling borné et ORDONNÉ.
+        let mut futs = Vec::with_capacity(sentences.len());
+        for s in &sentences {
+            futs.push(correct_one(backend, cfg, req, sys, dr, &s.text));
+        }
+        let corrected: Vec<Outcome> =
+            stream::iter(futs).buffered(CHUNK_CONCURRENCY).collect().await;
+        let texts: Vec<String> = corrected.iter().map(|o| o.text.clone()).collect();
+        let text = chunk::rejoin(&sentences, &texts);
+        let status = if corrected.iter().all(|o| o.status == Status::FailSafe) {
+            Status::FailSafe
+        } else if text.trim() != input.trim() {
+            Status::Corrected
+        } else {
+            Status::Unchanged
+        };
+        Outcome { text, status }
+    } else {
+        correct_one(
+            backend,
+            cfg,
+            req,
+            incoming_system.as_deref(),
+            dict_rendered.as_str(),
+            &input,
+        )
+        .await
     };
 
     // Post-traitement déterministe : force les graphies canoniques du dictionnaire
@@ -85,6 +105,35 @@ pub async fn correct(
         }
     }
     outcome
+}
+
+/// Corrige UN segment (phrase ou texte court) : prompt -> backend -> garde-fous -> fail-safe.
+async fn correct_one(
+    backend: &dyn Backend,
+    cfg: &CorrectionConfig,
+    req: &ChatRequest,
+    incoming_system: Option<&str>,
+    dict_rendered: &str,
+    input: &str,
+) -> Outcome {
+    let messages = prompt::build_messages(cfg.prompt_mode, incoming_system, dict_rendered, input);
+    let breq = BackendRequest {
+        messages,
+        temperature: req.temperature.unwrap_or(cfg.temperature),
+        top_p: req.top_p.unwrap_or(cfg.top_p),
+        max_tokens: req
+            .max_tokens
+            .unwrap_or_else(|| guardrails::compute_max_tokens(input, cfg.max_output_ratio)),
+        model: req.model.clone().unwrap_or_else(|| "luciole".into()),
+        stop: cfg.stop.clone(),
+    };
+    match backend.complete(&breq).await {
+        Ok(output) => guardrails::evaluate(input, &output, cfg.max_output_ratio),
+        Err(_) => Outcome {
+            text: input.trim().to_string(),
+            status: Status::FailSafe,
+        },
+    }
 }
 
 /// Remplace, dans le texte, chaque variante du dictionnaire par sa graphie canonique
