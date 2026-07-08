@@ -30,10 +30,35 @@
       : rows,
   );
 
+  function fold(s) {
+    return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  }
+  // Isole le terme qui a changé entre l'entrée et la sortie via préfixe/suffixe communs
+  // (mot à mot, insensible casse/accents), pour pré-remplir les champs sans tout resaisir.
+  function extractDiff(before, after) {
+    const strip = (w) => w.replace(/[.,!?;:«»"']/g, "");
+    const eq = (x, y) => fold(strip(x)) === fold(strip(y));
+    const b = before.trim().split(/\s+/).filter(Boolean);
+    const a = after.trim().split(/\s+/).filter(Boolean);
+    let s = 0;
+    while (s < b.length && s < a.length && eq(b[s], a[s])) s++;
+    let eb = b.length,
+      ea = a.length;
+    while (eb > s && ea > s && eq(b[eb - 1], a[ea - 1])) {
+      eb--;
+      ea--;
+    }
+    const clean = (arr) => arr.join(" ").replace(/^[\s.,!?;:«»"']+|[\s.,!?;:«»"']+$/g, "");
+    return { alias: clean(b.slice(s, eb)), canonical: clean(a.slice(s, ea)) };
+  }
+
   function openAdd(r) {
-    adding = { before: r.input ?? "", after: r.output ?? "" };
-    canonical = "";
-    alias = "";
+    const before = r.input ?? "",
+      after = r.output ?? "";
+    const d = extractDiff(before, after);
+    adding = { before, after };
+    canonical = d.canonical || after; // le terme corrigé, pré-inscrit
+    alias = d.alias; // la variante fautive, pré-inscrite
     addErr = null;
     addOk = false;
   }
