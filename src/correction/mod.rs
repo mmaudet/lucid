@@ -1,4 +1,5 @@
 //! Orchestration de la correction.
+pub mod common_words;
 pub mod guardrails;
 pub mod prompt;
 
@@ -92,9 +93,15 @@ pub fn apply_dictionary(text: &str, dict: &Dictionary) -> String {
     let mut pairs: Vec<(&str, &str)> = Vec::new();
     for t in &dict.terms {
         for a in &t.aliases {
-            if a.chars().count() >= 3 {
-                pairs.push((a.as_str(), t.canonical.as_str()));
+            if a.chars().count() < 3 {
+                continue;
             }
+            // Garde-fou : ne JAMAIS appliquer un alias mono-mot qui est un mot français
+            // courant (« aime »→Aimé corromprait « il aime… »). Les alias multi-mots passent.
+            if !a.contains(char::is_whitespace) && common_words::is_common_word(a) {
+                continue;
+            }
+            pairs.push((a.as_str(), t.canonical.as_str()));
         }
     }
     // Variantes les plus longues d'abord (ex. « lina gora » avant « lina »).
@@ -103,6 +110,20 @@ pub fn apply_dictionary(text: &str, dict: &Dictionary) -> String {
     let mut out = text.to_string();
     for (alias, canonical) in pairs {
         out = replace_word_ci(&out, alias, canonical);
+    }
+    out
+}
+
+/// Renvoie les alias « à risque » : mono-mot ET mot français courant (donc jamais
+/// appliqués). Utilisé à l'édition du dictionnaire pour refuser un alias ambigu.
+pub fn risky_aliases(dict: &Dictionary) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for t in &dict.terms {
+        for a in &t.aliases {
+            if !a.contains(char::is_whitespace) && common_words::is_common_word(a) {
+                out.push((t.canonical.clone(), a.clone()));
+            }
+        }
     }
     out
 }
@@ -161,6 +182,18 @@ mod tests {
         let dict = Dictionary::from_json(r#"{"terms":[{"canonical":"Chat","aliases":["cat"]}]}"#);
         assert_eq!(apply_dictionary("the category", &dict), "the category");
         assert_eq!(apply_dictionary("un cat noir", &dict), "un Chat noir");
+    }
+
+    #[test]
+    fn apply_dictionary_ignore_les_alias_ambigus() {
+        // « aime » est un mot courant : jamais appliqué (sinon « il aime… » serait corrompu).
+        let dict = Dictionary::from_json(r#"{"terms":[{"canonical":"Aimé","aliases":["aime"]}]}"#);
+        assert_eq!(apply_dictionary("il aime le café", &dict), "il aime le café");
+        assert_eq!(risky_aliases(&dict).len(), 1);
+        // Un alias distinctif (avec apostrophe) passe.
+        let d2 = Dictionary::from_json(r#"{"terms":[{"canonical":"LINAGORA","aliases":["l'inagora"]}]}"#);
+        assert_eq!(apply_dictionary("de l'inagora", &d2), "de LINAGORA");
+        assert!(risky_aliases(&d2).is_empty());
     }
 
     #[test]

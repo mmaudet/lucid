@@ -70,6 +70,18 @@ pub async fn dict_list(state: State<'_, AppRuntime>) -> Result<Dictionary, Strin
 
 #[tauri::command]
 pub async fn dict_save(state: State<'_, AppRuntime>, dict: Dictionary) -> Result<(), String> {
+    let risky = crate::correction::risky_aliases(&dict);
+    if !risky.is_empty() {
+        let list = risky
+            .iter()
+            .map(|(c, a)| format!("« {a} » (→ {c})"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        return Err(format!(
+            "Alias trop proche(s) d'un mot français courant, refusé(s) — risque de fausses \
+             corrections : {list}. Utilisez la faute de transcription exacte, ou un alias multi-mots."
+        ));
+    }
     let mgr = state.server.lock().await;
     mgr.dictionary().replace(dict).map_err(|e| e.to_string())
 }
@@ -81,9 +93,17 @@ pub async fn dict_add_term(
     canonical: String,
     alias: Option<String>,
 ) -> Result<(), String> {
+    let alias = alias.filter(|a| !a.trim().is_empty());
+    if let Some(a) = &alias {
+        if !a.contains(char::is_whitespace) && crate::correction::common_words::is_common_word(a) {
+            return Err(format!(
+                "L'alias « {a} » est un mot français courant — refusé (risque de fausses \
+                 corrections). Choisissez une variante plus distinctive."
+            ));
+        }
+    }
     let mgr = state.server.lock().await;
     let mut dict = (*mgr.dictionary().snapshot()).clone();
-    let alias = alias.filter(|a| !a.trim().is_empty());
     match dict.terms.iter_mut().find(|t| t.canonical == canonical) {
         Some(t) => {
             if let Some(a) = alias {
