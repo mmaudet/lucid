@@ -1,11 +1,31 @@
 //! Handlers HTTP.
 
-use axum::extract::State;
-use axum::http::HeaderMap;
+use axum::extract::{Request, State};
+use axum::http::{HeaderMap, Method, StatusCode, Uri};
+use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
 use serde_json::json;
 use std::time::Instant;
+
+/// Journalise chaque requête (méthode, chemin, statut) — diagnostic d'intégration.
+pub async fn log_request(req: Request, next: Next) -> Response {
+    let method = req.method().clone();
+    let uri = req.uri().clone();
+    let resp = next.run(req).await;
+    eprintln!("[lucid] {method} {uri} -> {}", resp.status());
+    resp
+}
+
+/// Filet : tout chemin non routé (souvent un client qui poste ailleurs qu'attendu).
+pub async fn fallback(method: Method, uri: Uri) -> Response {
+    eprintln!("[lucid] route NON ROUTÉE : {method} {uri}");
+    (
+        StatusCode::NOT_FOUND,
+        format!("Lucid : aucune route pour {method} {uri}"),
+    )
+        .into_response()
+}
 
 use super::AppState;
 use crate::correction;

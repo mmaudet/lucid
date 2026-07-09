@@ -27,8 +27,13 @@ pub fn build_app(state: AppState) -> Router {
         .route("/v1/models", get(routes::models))
         .route("/v1/chat/completions", post(routes::chat_completions))
         // Certains clients (ex. VoiceInk) postent la complétion directement sur
-        // l'« API Endpoint URL » sans ajouter /chat/completions. On accepte donc /v1.
+        // l'« API Endpoint URL » sans ajouter /chat/completions. On accepte donc /v1
+        // et /chat/completions (base_url sans /v1).
         .route("/v1", post(routes::chat_completions))
+        .route("/chat/completions", post(routes::chat_completions))
+        // Filet tolérant : TOUT POST (quel que soit le chemin) est traité comme une
+        // complétion. Évite les 404 quand un client poste sur un chemin inattendu.
+        .route("/{*rest}", post(routes::chat_completions))
         .route_layer(axum::middleware::from_fn_with_state(
             state.clone(),
             auth::require_bearer,
@@ -38,5 +43,7 @@ pub fn build_app(state: AppState) -> Router {
     Router::new()
         .route("/health", get(routes::health))
         .merge(protected)
+        .fallback(routes::fallback)
+        .layer(axum::middleware::from_fn(routes::log_request))
         .with_state(state)
 }
