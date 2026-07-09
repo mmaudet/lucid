@@ -50,7 +50,7 @@
     <div class="card" style="padding:12px 16px">
       {#each s.top_terms as t}
         <div class="barrow">
-          <span class="lbl" style="width:160px">{t.canonical}</span>
+          <span class="lbl">{t.canonical}</span>
           <span class="bar" style="width:{(100 * t.count) / maxTerm}%;background:#34c759"></span>
           <span class="muted">{t.count}</span>
         </div>

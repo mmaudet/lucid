@@ -173,10 +173,14 @@ td {
   padding: 4px 0;
 }
 .barrow .lbl {
-  width: 96px;
+  width: 150px;
+  flex-shrink: 0;
   color: #86868b;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .bar {
   height: 9px;
