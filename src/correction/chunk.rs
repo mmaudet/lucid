@@ -55,6 +55,46 @@ pub fn split_sentences(text: &str) -> Vec<Sentence> {
             sep: String::new(),
         });
     }
+    split_long_units(out)
+}
+
+/// Longueur max d'une unité avant sous-découpage (dictée en flux continu sans ponctuation :
+/// un bloc énorme fait dériver le 1B en « mode chatbot »).
+const MAX_UNIT_CHARS: usize = 180;
+
+/// Sous-découpe les unités trop longues aux frontières de mots (~`target` caractères).
+fn split_long_units(units: Vec<Sentence>) -> Vec<Sentence> {
+    let mut out = Vec::new();
+    for u in units {
+        if u.text.chars().count() <= MAX_UNIT_CHARS {
+            out.push(u);
+            continue;
+        }
+        let pieces = split_by_words(&u.text, 150);
+        let n = pieces.len();
+        for (i, p) in pieces.into_iter().enumerate() {
+            let sep = if i + 1 == n { u.sep.clone() } else { " ".to_string() };
+            out.push(Sentence { text: p, sep });
+        }
+    }
+    out
+}
+
+fn split_by_words(text: &str, target: usize) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    for w in text.split_whitespace() {
+        if !cur.is_empty() && cur.chars().count() + 1 + w.chars().count() > target {
+            out.push(std::mem::take(&mut cur));
+        }
+        if !cur.is_empty() {
+            cur.push(' ');
+        }
+        cur.push_str(w);
+    }
+    if !cur.is_empty() {
+        out.push(cur);
+    }
     out
 }
 
@@ -128,5 +168,13 @@ mod tests {
         let u = split_sentences("juste une phrase sans point");
         assert_eq!(u.len(), 1);
         assert_eq!(u[0].text, "juste une phrase sans point");
+    }
+
+    #[test]
+    fn sous_decoupe_les_flux_continus_sans_ponctuation() {
+        let long = "mot ".repeat(80); // ~320 caractères, aucune ponctuation
+        let u = split_sentences(long.trim());
+        assert!(u.len() >= 2, "un flux long doit être sous-découpé");
+        assert!(u.iter().all(|s| s.text.chars().count() <= 180));
     }
 }

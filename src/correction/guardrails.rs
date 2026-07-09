@@ -1,4 +1,6 @@
-//! Garde-fous de longueur + décision de fail-safe.
+//! Garde-fous (longueur, mode chatbot) + décision de fail-safe.
+
+use super::common_words::fold;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
@@ -29,6 +31,10 @@ pub fn evaluate(input: &str, output: &str, max_ratio: f32) -> Outcome {
             return failsafe(input_trimmed);
         }
     }
+    // Mode chatbot : le modèle commente/explique/répond au lieu de corriger.
+    if looks_like_chatbot(input_trimmed, trimmed) {
+        return failsafe(input_trimmed);
+    }
     let status = if trimmed == input_trimmed {
         Status::Unchanged
     } else {
@@ -39,6 +45,59 @@ pub fn evaluate(input: &str, output: &str, max_ratio: f32) -> Outcome {
 
 fn failsafe(input_trimmed: &str) -> Outcome {
     Outcome { text: input_trimmed.to_string(), status: Status::FailSafe }
+}
+
+/// Détecte une sortie « mode chatbot » : commentaire/explication/méta, ou ouverture
+/// de réponse (« Oui… », « Voici… ») que l'entrée ne contenait pas. On ne flague que
+/// ce que le modèle a AJOUTÉ (si l'entrée contient déjà le motif, ce n'est pas suspect).
+fn looks_like_chatbot(input: &str, output: &str) -> bool {
+    let fo = fold(output);
+    let fi = fold(input);
+
+    // Motifs de méta-commentaire (accents repliés : « corrigé »→« corrige »).
+    const MARKERS: &[&str] = &[
+        "(correct",
+        "correction :",
+        "correction:",
+        "orthographi",
+        "s'orthographie",
+        "variante de",
+        "est une variante",
+        "il s'agit d'",
+        "voici la version",
+        "voici le texte",
+        "voici la correction",
+        "texte corrige",
+        "phrase corrige",
+        "je n'ai pas modifi",
+        "note :",
+        "remarque :",
+        "en resume",
+        "pour resumer",
+        "est correcte",
+        "sont correctes",
+    ];
+    if MARKERS.iter().any(|m| fo.contains(m) && !fi.contains(m)) {
+        return true;
+    }
+
+    // Ouvertures typiques d'une réponse de chatbot, absentes de l'entrée.
+    const OPENERS: &[&str] = &[
+        "oui,",
+        "oui ",
+        "non,",
+        "bien sur",
+        "voici ",
+        "d'accord",
+        "en effet,",
+        "avec plaisir",
+        "je vais vous",
+        "je peux vous",
+        "bien entendu",
+    ];
+    OPENERS
+        .iter()
+        .any(|o| fo.starts_with(o) && !fi.starts_with(o))
 }
 
 /// Plafond de génération, relatif à la longueur d'entrée (estimation ~1 token / 3 car.).
@@ -82,5 +141,29 @@ mod tests {
     #[test]
     fn max_tokens_croit_avec_l_entree() {
         assert!(compute_max_tokens(&"a".repeat(300), 2.0) > compute_max_tokens("a", 2.0));
+    }
+
+    #[test]
+    fn commentaire_declenche_failsafe() {
+        let o = evaluate(
+            "je travaille sur touek",
+            "Michel travaille sur Touek (correct : Touek est un patronyme).",
+            10.0,
+        );
+        assert_eq!(o.status, Status::FailSafe);
+        assert_eq!(o.text, "je travaille sur touek");
+    }
+
+    #[test]
+    fn ouverture_chatbot_declenche_failsafe() {
+        assert_eq!(evaluate("salut sa va", "Oui, ça va.", 10.0).status, Status::FailSafe);
+        assert_eq!(evaluate("le rapport", "Voici le rapport corrigé.", 10.0).status, Status::FailSafe);
+    }
+
+    #[test]
+    fn motif_present_dans_l_entree_reste_corrected() {
+        // « variante de » est dans l'entrée -> ce n'est pas un ajout du modèle.
+        let o = evaluate("c'est une variante de test", "C'est une variante de test.", 10.0);
+        assert_eq!(o.status, Status::Corrected);
     }
 }
