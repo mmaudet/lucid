@@ -30,6 +30,11 @@ pub fn evaluate(input: &str, output: &str, max_ratio: f32) -> Outcome {
         if (out_len as f32) > (in_len as f32) * max_ratio {
             return failsafe(input_trimmed);
         }
+        // Chute de longueur anormale : le modèle a supprimé la majeure partie du
+        // contenu (« collapse »). Sur une entrée un peu longue, c'est un échec.
+        if in_len > 25 && (out_len as f32) < (in_len as f32) * 0.35 {
+            return failsafe(input_trimmed);
+        }
     }
     // Mode chatbot : le modèle commente/explique/répond au lieu de corriger.
     if looks_like_chatbot(input_trimmed, trimmed) {
@@ -199,6 +204,13 @@ mod tests {
             "Je ne connais pas POSAIS (sans utiliser le mot art si demandé, mais sans le remplacer).",
             10.0,
         );
+        assert_eq!(o.status, Status::FailSafe);
+    }
+
+    #[test]
+    fn chute_de_longueur_declenche_failsafe() {
+        // Le modèle collapse une entrée en un seul mot -> fail-safe (entrée préservée).
+        let o = evaluate("on hésite entre twekeye et luciol demain matin", "Luciole.", 2.0);
         assert_eq!(o.status, Status::FailSafe);
     }
 
