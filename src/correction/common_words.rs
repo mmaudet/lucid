@@ -36,6 +36,7 @@ doit dois devons devez devoir sait sais savons savez savoir \
 voit vois voyons voyez voir prend prends prenons prendre \
 vient viens venons venir met mets mettre \
 aime aimes aiment aimait aide aides aident aidait \
+pose poses posait posaient posons posez posent poser posee posees \
 oui non pas plus moins tres bien mal peu beaucoup trop assez \
 tout tous toute toutes rien seul seule meme autre autres \
 grand grande petit petite bon bonne nouveau nouvelle premier derniere \

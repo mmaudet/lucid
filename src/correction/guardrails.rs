@@ -95,9 +95,34 @@ fn looks_like_chatbot(input: &str, output: &str) -> bool {
         "je peux vous",
         "bien entendu",
     ];
-    OPENERS
+    if OPENERS
         .iter()
         .any(|o| fo.starts_with(o) && !fi.starts_with(o))
+    {
+        return true;
+    }
+
+    // Parenthèse explicative / méta AJOUTÉE que l'entrée ne contenait pas
+    // (ex. « (sans utiliser le mot X si demandé, mais sans le remplacer) » hallucinée).
+    if fo.matches('(').count() > fi.matches('(').count() {
+        const META: &[&str] = &[
+            "sans utiliser",
+            "si demande",
+            "c'est-a-dire",
+            "c.-a-d",
+            "ndlr",
+            "a savoir",
+            "au sens",
+            "sans le remplacer",
+            "autrement dit",
+            "soit ",
+            "sic",
+        ];
+        if META.iter().any(|m| fo.contains(m) && !fi.contains(m)) {
+            return true;
+        }
+    }
+    false
 }
 
 /// Plafond de génération, relatif à la longueur d'entrée (estimation ~1 token / 3 car.).
@@ -164,6 +189,27 @@ mod tests {
     fn motif_present_dans_l_entree_reste_corrected() {
         // « variante de » est dans l'entrée -> ce n'est pas un ajout du modèle.
         let o = evaluate("c'est une variante de test", "C'est une variante de test.", 10.0);
+        assert_eq!(o.status, Status::Corrected);
+    }
+
+    #[test]
+    fn parenthese_meta_ajoutee_declenche_failsafe() {
+        let o = evaluate(
+            "je ne connais pas le terme posais",
+            "Je ne connais pas POSAIS (sans utiliser le mot art si demandé, mais sans le remplacer).",
+            10.0,
+        );
+        assert_eq!(o.status, Status::FailSafe);
+    }
+
+    #[test]
+    fn parenthese_legitime_dictee_reste_corrected() {
+        // Parenthèse déjà présente dans l'entrée -> conservée (pas un ajout).
+        let o = evaluate(
+            "il est parti (sans prevenir) hier",
+            "Il est parti (sans prévenir) hier.",
+            10.0,
+        );
         assert_eq!(o.status, Status::Corrected);
     }
 }
