@@ -81,6 +81,17 @@ fn looks_like_chatbot(input: &str, output: &str) -> bool {
         "pour resumer",
         "est correcte",
         "sont correctes",
+        // Réponses d'assistant (le modèle « dialogue » au lieu de corriger).
+        "il est agreable de",
+        "ravi de vous",
+        "enchante de vous",
+        "pourriez-vous preciser",
+        "n'hesitez pas",
+        "comment puis-je",
+        "puis-je vous aider",
+        "je vous en prie",
+        "je vous remercie",
+        "avec plaisir",
     ];
     if MARKERS.iter().any(|m| fo.contains(m) && !fi.contains(m)) {
         return true;
@@ -203,6 +214,16 @@ mod tests {
             "je ne connais pas le terme posais",
             "Je ne connais pas POSAIS (sans utiliser le mot art si demandé, mais sans le remplacer).",
             10.0,
+        );
+        assert_eq!(o.status, Status::FailSafe);
+    }
+
+    #[test]
+    fn reponse_assistant_declenche_failsafe() {
+        let o = evaluate(
+            "bonjour je mappelle michel je travaille chez linagora",
+            "Bonjour Michel, il est agréable de vous connaître ! Pourriez-vous préciser votre poste ?",
+            3.0,
         );
         assert_eq!(o.status, Status::FailSafe);
     }
